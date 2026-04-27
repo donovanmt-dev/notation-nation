@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notation Nation &mdash; Math Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a1a;color:#f5f0e8;font-family:'Press Start 2P',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+/* STARS */
+#stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;background:#fff;border-radius:50%}
+
+/* WRAPPER */
+#app{position:relative;z-index:1;width:100%;max-width:680px}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;align-items:center;gap:16px}
+.screen.active{display:flex}
+
+/* TITLE SCREEN */
+#title-screen .logo{font-size:11px;color:#FAC775;letter-spacing:.15em;margin-bottom:8px;text-align:center}
+#title-screen h1{font-size:18px;color:#fff;text-align:center;line-height:1.8;text-shadow:0 0 20px #FAC775}
+#title-screen .tagline{font-size:8px;color:#888780;letter-spacing:.12em;text-align:center;margin-top:4px}
+.planet{width:80px;height:80px;border-radius:50%;background:#1a1a3e;border:3px solid #534AB7;display:flex;align-items:center;justify-content:center;font-size:28px;margin:8px auto}
+.planet::after{content:'';display:block;width:110px;height:18px;border:2px solid #FAC775;border-radius:50%;position:absolute;opacity:.6}
+
+/* CARDS */
+.card{background:#12122a;border:2px solid #2C2C6A;border-radius:4px;padding:20px;width:100%}
+.card-dark{background:#0d0d1f;border-color:#1a1a4a}
+
+/* PROGRESS */
+#progress-bar-wrap{width:100%;height:8px;background:#1a1a3a;border-radius:2px;overflow:hidden}
+#progress-bar{height:100%;background:#FAC775;border-radius:2px;transition:width .4s ease}
+#hud{display:flex;justify-content:space-between;align-items:center;width:100%;font-size:8px}
+#hud .label{color:#888780;letter-spacing:.1em}
+#hud .value{color:#FAC775;font-size:10px}
+
+/* QUESTION CARD */
+#q-label{font-size:8px;color:#534AB7;letter-spacing:.15em;margin-bottom:4px}
+#q-topic{font-size:9px;color:#FAC775;letter-spacing:.1em;margin-bottom:14px}
+#q-text{font-size:11px;color:#f5f0e8;line-height:1.9;letter-spacing:.04em}
+
+/* ANSWER CHOICES */
+#choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:4px}
+.choice-btn{background:#0d0d1f;border:2px solid #2C2C6A;border-radius:4px;padding:14px 10px;font-family:'Press Start 2P',monospace;font-size:9px;color:#f5f0e8;cursor:pointer;text-align:left;line-height:1.7;transition:border-color .15s,background .15s}
+.choice-btn:hover{border-color:#534AB7;background:#1a1a3e}
+.choice-btn.correct{border-color:#3B6D11;background:#1a2e0d;color:#C0DD97}
+.choice-btn.wrong{border-color:#A32D2D;background:#2e0d0d;color:#F09595}
+.choice-btn.reveal{border-color:#3B6D11;background:#1a2e0d;color:#C0DD97}
+.choice-btn:disabled{cursor:default}
+
+/* OPEN RESPONSE */
+#open-wrap{width:100%;margin-top:4px}
+#open-input{width:100%;background:#0d0d1f;border:2px solid #2C2C6A;border-radius:4px;padding:12px 14px;font-family:'Press Start 2P',monospace;font-size:11px;color:#f5f0e8;outline:none;letter-spacing:.06em}
+#open-input:focus{border-color:#534AB7}
+#open-input.correct{border-color:#3B6D11;background:#1a2e0d;color:#C0DD97}
+#open-input.wrong{border-color:#A32D2D;background:#2e0d0d}
+#submit-btn{margin-top:10px;width:100%}
+
+/* FEEDBACK */
+#feedback-box{width:100%;border-radius:4px;padding:14px;display:none}
+#feedback-box.correct{border:2px solid #3B6D11;background:#1a2e0d}
+#feedback-box.wrong{border:2px solid #A32D2D;background:#2e0d0d}
+#feedback-icon{font-size:9px;letter-spacing:.1em;margin-bottom:6px}
+#feedback-icon.correct{color:#97C459}
+#feedback-icon.wrong{color:#F09595}
+#feedback-text{font-size:8px;color:#D3D1C7;line-height:1.8;letter-spacing:.05em}
+#feedback-answer{font-size:9px;color:#FAC775;margin-top:6px;line-height:1.7}
+
+/* BUTTONS */
+.btn{background:#2C2C6A;border:2px solid #534AB7;border-radius:4px;padding:14px 24px;font-family:'Press Start 2P',monospace;font-size:10px;color:#f5f0e8;cursor:pointer;letter-spacing:.08em;transition:background .15s,border-color .15s;text-align:center}
+.btn:hover{background:#3a3a8a;border-color:#7F77DD}
+.btn-gold{background:#412402;border-color:#FAC775;color:#FAC775}
+.btn-gold:hover{background:#633806}
+.btn-sm{font-size:8px;padding:10px 16px}
+
+/* STREAK BURST */
+#streak-burst{font-size:9px;color:#FAC775;letter-spacing:.12em;text-align:center;min-height:16px}
+
+/* END SCREEN */
+#end-screen .score-big{font-size:32px;color:#FAC775;text-align:center;line-height:1.4}
+#end-screen .score-label{font-size:8px;color:#888780;letter-spacing:.12em;text-align:center;margin-top:4px}
+#end-screen .grade-msg{font-size:10px;text-align:center;line-height:1.8;color:#D3D1C7;margin:8px 0}
+.breakdown{width:100%;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.bd-row{display:flex;justify-content:space-between;align-items:center;font-size:8px;padding:8px 10px;background:#0d0d1f;border-radius:4px;border:1px solid #1a1a4a}
+.bd-q{color:#888780;flex:1;line-height:1.6}
+.bd-result{font-size:9px;min-width:60px;text-align:right}
+.bd-result.ok{color:#97C459}
+.bd-result.miss{color:#F09595}
+
+/* NEXT BTN */
+#next-btn{width:100%;display:none}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Notation Nation — a scientific notation quiz game for 8th grade math</h2>
+<canvas id="stars"></canvas>
+
+<div id="app">
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen" class="screen active">
+    <div class="logo">MATH ARCADE &nbsp;&middot;&nbsp; DAY 3</div>
+    <div class="planet"></div>
+    <h1>NOTATION<br>NATION</h1>
+    <div class="tagline">SCIENTIFIC NOTATION &nbsp;&middot;&nbsp; 8TH GRADE</div>
+    <div class="card" style="margin-top:8px">
+      <div style="font-size:8px;color:#888780;line-height:2;letter-spacing:.08em">
+        &rarr; 12 QUESTIONS &nbsp;&middot;&nbsp; SHUFFLED EACH PLAY<br>
+        &rarr; CONVERT &middot; COMPARE &middot; MULTIPLY &middot; DIVIDE<br>
+        &rarr; EARN POINTS &amp; BUILD YOUR STREAK
+      </div>
+    </div>
+    <button class="btn btn-gold" id="start-btn" style="margin-top:4px;width:100%">START GAME</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen">
+    <div id="hud">
+      <div><div class="label">SCORE</div><div class="value" id="score-display">0</div></div>
+      <div style="text-align:center"><div class="label">QUESTION</div><div class="value" id="q-counter">1 / 12</div></div>
+      <div style="text-align:right"><div class="label">STREAK</div><div class="value" id="streak-display">0</div></div>
+    </div>
+    <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+    <div id="streak-burst">&nbsp;</div>
+
+    <div class="card">
+      <div id="q-label">QUESTION</div>
+      <div id="q-topic"></div>
+      <div id="q-text"></div>
+    </div>
+
+    <div id="choices"></div>
+    <div id="open-wrap" style="display:none">
+      <input id="open-input" type="text" placeholder="type your answer...">
+      <button class="btn btn-gold" id="submit-btn">CHECK ANSWER</button>
+    </div>
+
+    <div id="feedback-box">
+      <div id="feedback-icon"></div>
+      <div id="feedback-text"></div>
+      <div id="feedback-answer"></div>
+    </div>
+
+    <button class="btn btn-gold" id="next-btn">NEXT &rarr;</button>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="end-screen" class="screen">
+    <div class="logo">MATH ARCADE &nbsp;&middot;&nbsp; GAME OVER</div>
+    <div class="card" style="text-align:center">
+      <div class="score-big" id="final-score">0</div>
+      <div class="score-label">POINTS</div>
+      <div class="grade-msg" id="grade-msg"></div>
+    </div>
+    <div class="card card-dark" style="width:100%">
+      <div style="font-size:8px;color:#888780;letter-spacing:.1em;margin-bottom:10px">QUESTION BREAKDOWN</div>
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+    <button class="btn btn-gold" id="play-again-btn" style="width:100%">PLAY AGAIN</button>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    id:1, topic:"SCIENTIFIC NOTATION", type:"mc",
+    q:"Write 750,000 in scientific notation.",
+    choices:["7.5 \u00d7 10\u2075","7.5 \u00d7 10\u2074","75 \u00d7 10\u2074","0.75 \u00d7 10\u2076"],
+    answer:"7.5 \u00d7 10\u2075",
+    hint:"Count how many places you move the decimal left to get a coefficient between 1 and 10. 750,000 \u2192 decimal moves 5 places."
+  },
+  {
+    id:2, topic:"SCIENTIFIC NOTATION", type:"mc",
+    q:"A student wrote 7,500 \u00d7 10\u00b2. Rewrite in proper scientific notation.",
+    choices:["7.5 \u00d7 10\u2075","75 \u00d7 10\u00b3","7.5 \u00d7 10\u2074","0.75 \u00d7 10\u2076"],
+    answer:"7.5 \u00d7 10\u2075",
+    hint:"The coefficient 7,500 is too large. Move decimal left 3 places: 7.5. Compensate by adding 3 to the exponent: 2 + 3 = 5."
+  },
+  {
+    id:3, topic:"STANDARD FORM", type:"open",
+    q:"Write 4.2 \u00d7 10\u2074 in standard form.",
+    answer:"42000",
+    display:"42,000",
+    hint:"Multiply 4.2 by 10,000. Move the decimal 4 places to the right: 4.2 \u2192 42,000."
+  },
+  {
+    id:4, topic:"STANDARD FORM", type:"mc",
+    q:"Write 0.42 \u00d7 10\u2075 in standard form.",
+    choices:["42,000","4,200","420,000","4,200,000"],
+    answer:"42,000",
+    hint:"0.42 \u00d7 10\u2075 = 0.42 \u00d7 100,000 = 42,000. Even though the coefficient looks small, the large exponent still gives 42,000."
+  },
+  {
+    id:5, topic:"NEGATIVE EXPONENTS", type:"open",
+    q:"Write 0.0000056 in scientific notation.",
+    answer:"5.6e-6",
+    display:"5.6 \u00d7 10\u207b\u2076",
+    alts:["5.6 x 10^-6","5.6x10^-6","5.6 * 10^-6","5.6\u00d710^-6"],
+    hint:"Move the decimal right 6 places to get 5.6. Since you moved right, the exponent is negative: 5.6 \u00d7 10\u207b\u2076."
+  },
+  {
+    id:6, topic:"NEGATIVE EXPONENTS", type:"mc",
+    q:"A student wrote 560 \u00d7 10\u207b\u2078. Rewrite in proper form.",
+    choices:["5.6 \u00d7 10\u207b\u2076","5.6 \u00d7 10\u207b\u2078","56 \u00d7 10\u207b\u2077","5.6 \u00d7 10\u207b\u00b3"],
+    answer:"5.6 \u00d7 10\u207b\u2076",
+    hint:"560 is too large. Move decimal left 2 places to get 5.6, so add 2 to the exponent: \u22128 + 2 = \u22126."
+  },
+  {
+    id:7, topic:"COMPARE VALUES", type:"mc",
+    q:"Saturn\u2019s diameter: 8.0 \u00d7 10\u2076 miles.\nMars\u2019s diameter: 2.0 \u00d7 10\u2076 miles.\nHow many times greater is Saturn\u2019s diameter?",
+    choices:["4","40","0.4","6"],
+    answer:"4",
+    hint:"Same exponent, so just divide coefficients: 8.0 \u00f7 2.0 = 4. Saturn is 4 times wider than Mars."
+  },
+  {
+    id:8, topic:"MULTIPLY", type:"mc",
+    q:"Simplify: (3 \u00d7 10\u2074) \u00d7 (4 \u00d7 10\u00b3)",
+    choices:["1.2 \u00d7 10\u2078","12 \u00d7 10\u2077","1.2 \u00d7 10\u2077","7 \u00d7 10\u2077"],
+    answer:"1.2 \u00d7 10\u2078",
+    hint:"Multiply coefficients: 3 \u00d7 4 = 12. Add exponents: 4 + 3 = 7. So 12 \u00d7 10\u2077. Now fix the coefficient: 1.2 \u00d7 10\u2078."
+  },
+  {
+    id:9, topic:"MULTIPLY", type:"mc",
+    q:"Simplify: (6 \u00d7 10\u2075) \u00d7 (2 \u00d7 10\u00b2)",
+    choices:["1.2 \u00d7 10\u2078","1.2 \u00d7 10\u2077","12 \u00d7 10\u2077","8 \u00d7 10\u2077"],
+    answer:"1.2 \u00d7 10\u2078",
+    hint:"Multiply coefficients: 6 \u00d7 2 = 12. Add exponents: 5 + 2 = 7. So 12 \u00d7 10\u2077. Convert to proper form: 1.2 \u00d7 10\u2078."
+  },
+  {
+    id:10, topic:"DIVIDE", type:"open",
+    q:"Simplify: (9 \u00d7 10\u2077) \u00f7 (3 \u00d7 10\u2074)",
+    answer:"3e3",
+    display:"3 \u00d7 10\u00b3",
+    alts:["3 x 10^3","3x10^3","3 * 10^3","3\u00d710^3","3000"],
+    hint:"Divide coefficients: 9 \u00f7 3 = 3. Subtract exponents: 7 \u2212 4 = 3. Answer: 3 \u00d7 10\u00b3."
+  },
+  {
+    id:11, topic:"REAL-WORLD CONTEXT", type:"mc",
+    q:"A grain of pollen is about 0.0025 cm wide.\nWrite this in scientific notation.",
+    choices:["2.5 \u00d7 10\u207b\u00b3","2.5 \u00d7 10\u00b3","25 \u00d7 10\u207b\u2074","0.25 \u00d7 10\u207b\u00b2"],
+    answer:"2.5 \u00d7 10\u207b\u00b3",
+    hint:"0.0025: move decimal right 3 places to get 2.5. Moving right means negative exponent: 2.5 \u00d7 10\u207b\u00b3."
+  },
+  {
+    id:12, topic:"SUBTRACT", type:"mc",
+    q:"Simplify:\n(5.8 \u00d7 10\u2076) \u2212 (2.7 \u00d7 10\u2076)",
+    choices:["3.1 \u00d7 10\u2076","3.1 \u00d7 10\u00b3","3.1 \u00d7 10\u2070","8.5 \u00d7 10\u2076"],
+    answer:"3.1 \u00d7 10\u2076",
+    hint:"Same exponent! Just subtract coefficients: 5.8 \u2212 2.7 = 3.1. Keep the exponent: 3.1 \u00d7 10\u2076."
+  }
+];
+
+let questions, current, score, streak, results, answered;
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function screen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(){
+  questions=shuffle(QUESTIONS);
+  current=0; score=0; streak=0; results=[];
+  screen('game-screen');
+  loadQuestion();
+}
+
+function loadQuestion(){
+  answered=false;
+  const q=questions[current];
+  document.getElementById('q-label').textContent=`QUESTION ${current+1}`;
+  document.getElementById('q-counter').textContent=`${current+1} / ${questions.length}`;
+  document.getElementById('q-topic').textContent=q.topic;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('progress-bar').style.width=`${(current/questions.length)*100}%`;
+  document.getElementById('score-display').textContent=score;
+  document.getElementById('streak-display').textContent=streak;
+  document.getElementById('streak-burst').innerHTML='&nbsp;';
+  document.getElementById('feedback-box').style.display='none';
+  document.getElementById('feedback-box').className='';
+  document.getElementById('next-btn').style.display='none';
+
+  if(q.type==='mc'){
+    document.getElementById('choices').style.display='grid';
+    document.getElementById('open-wrap').style.display='none';
+    const shuffled=shuffle(q.choices);
+    document.getElementById('choices').innerHTML=shuffled.map(c=>
+      `<button class="choice-btn" onclick="checkMC(this,'${escQ(c)}','${escQ(q.answer)}','${escQ(q.hint)}')">${c}</button>`
+    ).join('');
+  } else {
+    document.getElementById('choices').style.display='none';
+    document.getElementById('open-wrap').style.display='block';
+    const inp=document.getElementById('open-input');
+    inp.value=''; inp.disabled=false;
+    inp.className='';
+    document.getElementById('submit-btn').onclick=()=>checkOpen(q);
+    inp.onkeydown=e=>{if(e.key==='Enter')checkOpen(q);};
+  }
+}
+
+function escQ(s){return s.replace(/'/g,"\\'");}
+
+function normalise(s){
+  return s.toLowerCase()
+    .replace(/\s+/g,'')
+    .replace(/×/g,'*')
+    .replace(/\u00d7/g,'*')
+    .replace(/\u207b/g,'-')
+    .replace(/\u2070/g,'0').replace(/\u00b9/g,'1').replace(/\u00b2/g,'2').replace(/\u00b3/g,'3')
+    .replace(/\u2074/g,'4').replace(/\u2075/g,'5').replace(/\u2076/g,'6').replace(/\u2077/g,'7')
+    .replace(/\u2078/g,'8').replace(/\u2079/g,'9')
+    .replace(/,/g,'');
+}
+
+function checkOpen(q){
+  if(answered)return;
+  const raw=document.getElementById('open-input').value.trim();
+  if(!raw)return;
+  const norm=normalise(raw);
+  const correctNorms=[normalise(q.answer),...(q.alts||[]).map(normalise)];
+
+  // Also accept plain number equivalents
+  let numMatch=false;
+  try{
+    const val=eval(raw.replace(/\u00d7/g,'*').replace(/×/g,'*').replace(/\^/g,'**').replace(/e/gi,'e'));
+    const ansVal=eval(q.answer.replace(/e/gi,'e').replace(/\u00d7/g,'*').replace(/×/g,'*').replace(/\^/g,'**'));
+    numMatch=Math.abs(val-ansVal)<0.0001*Math.abs(ansVal||1);
+  }catch(e){}
+
+  const correct=correctNorms.includes(norm)||numMatch;
+  showOpenFeedback(correct,q);
+}
+
+function showOpenFeedback(correct,q){
+  answered=true;
+  const inp=document.getElementById('open-input');
+  inp.disabled=true;
+  inp.className=correct?'correct':'wrong';
+  recordAndShow(correct,q.topic,q.display||q.answer,q.hint);
+}
+
+function checkMC(btn,chosen,answer,hint){
+  if(answered)return;
+  answered=true;
+  const correct=chosen===answer;
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent.trim()===answer)b.classList.add(correct?'correct':'reveal');
+  });
+  if(!correct)btn.classList.add('wrong');
+  recordAndShow(correct,null,answer,hint);
+}
+
+function recordAndShow(correct,topic,answer,hint){
+  const q=questions[current];
+  const pts=correct?(streak>=2?200:100):0;
+  if(correct){score+=pts;streak++;}else{streak=0;}
+  results.push({topic:q.topic,answer:q.q.substring(0,40)+'...',correct});
+  document.getElementById('score-display').textContent=score;
+  document.getElementById('streak-display').textContent=streak;
+
+  if(correct&&streak>=3){
+    document.getElementById('streak-burst').textContent=`STREAK x${streak}! +${pts} PTS`;
+  } else if(correct){
+    document.getElementById('streak-burst').textContent=`+${pts} PTS`;
+  } else {
+    document.getElementById('streak-burst').textContent='';
+  }
+
+  const fb=document.getElementById('feedback-box');
+  fb.style.display='block';
+  fb.className=correct?'correct':'wrong';
+  document.getElementById('feedback-icon').textContent=correct?'CORRECT!':'NOT QUITE';
+  document.getElementById('feedback-icon').className=correct?'correct':'wrong';
+  document.getElementById('feedback-text').textContent=hint;
+  document.getElementById('feedback-answer').textContent=correct?'':'Correct answer: '+answer;
+
+  document.getElementById('next-btn').style.display='block';
+}
+
+function nextQuestion(){
+  current++;
+  if(current>=questions.length){showEnd();return;}
+  loadQuestion();
+}
+
+function showEnd(){
+  screen('end-screen');
+  document.getElementById('final-score').textContent=score;
+  const pct=results.filter(r=>r.correct).length/results.length;
+  let msg;
+  if(pct===1)msg='PERFECT SCORE! NOTATION MASTER!';
+  else if(pct>=.83)msg='EXCELLENT WORK! Almost perfect!';
+  else if(pct>=.67)msg='SOLID RUN. Keep building that streak!';
+  else if(pct>=.5)msg='GOOD EFFORT. Review the hints for the ones you missed.';
+  else msg='KEEP PRACTICING. Review the key rules and try again!';
+  document.getElementById('grade-msg').textContent=msg;
+
+  const bd=document.getElementById('breakdown');
+  bd.innerHTML='';
+  results.forEach((r,i)=>{
+    const row=document.createElement('div');
+    row.className='bd-row';
+    row.innerHTML=`<span class="bd-q">Q${i+1}: ${questions[i].topic}</span><span class="bd-result ${r.correct?'ok':'miss'}">${r.correct?'CORRECT':'MISSED'}</span>`;
+    bd.appendChild(row);
+  });
+}
+
+// Stars background
+(function(){
+  const c=document.getElementById('stars');
+  const ctx=c.getContext('2d');
+  c.width=window.innerWidth; c.height=window.innerHeight;
+  for(let i=0;i<120;i++){
+    const x=Math.random()*c.width, y=Math.random()*c.height;
+    const r=Math.random()*1.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${Math.random()*.7+.1})`; ctx.fill();
+  }
+})();
+
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.getElementById('next-btn').addEventListener('click',nextQuestion);
+document.getElementById('play-again-btn').addEventListener('click',startGame);
+</script>
+</body>
+</html>
